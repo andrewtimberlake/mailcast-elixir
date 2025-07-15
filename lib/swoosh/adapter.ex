@@ -120,6 +120,8 @@ if Code.ensure_loaded?(Swoosh) do
       |> add_data(email)
       |> set_transactional(email)
       |> add_template_id(email)
+      |> set_open_tracking(email)
+      |> set_click_tracking(email)
     end
 
     defp add_tags(map, %{provider_options: %{tags: tags}}) when not is_nil(tags) do
@@ -167,5 +169,17 @@ if Code.ensure_loaded?(Swoosh) do
         filename: attachment.filename
       }
     end
+
+    defp set_open_tracking(map, %{provider_options: %{open_tracking: true}}) do
+      Map.put(map, :open_tracking, true)
+    end
+
+    defp set_open_tracking(map, _email), do: map
+
+    defp set_click_tracking(map, %{provider_options: %{click_tracking: true}}) do
+      Map.put(map, :click_tracking, true)
+    end
+
+    defp set_click_tracking(map, _email), do: map
   end
 end
