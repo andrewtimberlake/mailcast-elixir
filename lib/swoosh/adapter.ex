@@ -63,7 +63,7 @@ if Code.ensure_loaded?(Swoosh) do
           {:ok, parse_response(body)}
 
         {:ok, code, _headers, body} when code >= 400 and code <= 599 ->
-          {:error, {code, parse_response(body)}}
+          {:error, {code, body}}
 
         {:error, reason} ->
           {:error, reason}
