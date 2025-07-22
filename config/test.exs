@@ -1,3 +1,5 @@
 import Config
 
-config :swoosh, :api_client, Swoosh.ApiClient.Req
+alias Swoosh.ApiClient.Req
+
+config :swoosh, :api_client, Req
