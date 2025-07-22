@@ -7,11 +7,21 @@ defmodule Mailcast.WebhooksTest do
   @test_signature "B0QZy14FqS21Y6Ie3Jasc4YjZmNCcxXeGpDyXTnHUD8="
   @test_timestamp "2025-07-22T09:11:59Z"
 
+  setup do
+    Application.put_env(:mailcast, :webhook_secret, @test_secret)
+
+    on_exit(fn ->
+      Application.delete_env(:mailcast, :webhook_secret)
+    end)
+
+    :ok
+  end
+
   test "verify_signature/3 without raw body" do
     conn = %Plug.Conn{}
 
     assert_raise RuntimeError, ~r/Cannot verify signature without the raw body/, fn ->
-      Mailcast.Webhooks.verify_signature(conn, @test_secret)
+      Mailcast.Webhooks.verify_signature(conn)
     end
   end
 
@@ -23,7 +33,7 @@ defmodule Mailcast.WebhooksTest do
       |> Plug.Conn.put_req_header("x-mailcast-timestamp", @test_timestamp)
       |> Plug.Conn.put_req_header("x-mailcast-signature", @test_signature)
 
-    assert Mailcast.Webhooks.verify_signature(conn, @test_secret) == :ok
+    assert Mailcast.Webhooks.verify_signature(conn) == :ok
   end
 
   test "verify_signature/3 with supplied raw body" do
@@ -32,7 +42,7 @@ defmodule Mailcast.WebhooksTest do
       |> Plug.Conn.put_req_header("x-mailcast-timestamp", @test_timestamp)
       |> Plug.Conn.put_req_header("x-mailcast-signature", @test_signature)
 
-    assert Mailcast.Webhooks.verify_signature(conn, @test_secret, @test_body) == :ok
+    assert Mailcast.Webhooks.verify_signature(conn, @test_body) == :ok
   end
 
   test "verify_signature/3 with missing header" do
@@ -42,7 +52,7 @@ defmodule Mailcast.WebhooksTest do
       }
       |> Plug.Conn.put_req_header("x-mailcast-timestamp", @test_timestamp)
 
-    assert Mailcast.Webhooks.verify_signature(conn, @test_secret) == {:error, "Missing header"}
+    assert Mailcast.Webhooks.verify_signature(conn) == {:error, "Missing header"}
   end
 
   test "verify_signature/3 with invalid signature" do
@@ -53,6 +63,6 @@ defmodule Mailcast.WebhooksTest do
       |> Plug.Conn.put_req_header("x-mailcast-timestamp", @test_timestamp)
       |> Plug.Conn.put_req_header("x-mailcast-signature", "invalid")
 
-    assert Mailcast.Webhooks.verify_signature(conn, @test_secret) == {:error, "Invalid signature"}
+    assert Mailcast.Webhooks.verify_signature(conn) == {:error, "Invalid signature"}
   end
 end

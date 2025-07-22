@@ -1,5 +1,7 @@
 defmodule Mailcast.Webhooks do
-  def verify_signature(conn, secret, raw_body \\ nil) do
+  def verify_signature(conn, raw_body \\ nil) do
+    secret = Application.fetch_env!(:mailcast, :webhook_secret)
+
     raw_body = get_raw_body(conn, raw_body)
 
     with [timestamp] <- Plug.Conn.get_req_header(conn, "x-mailcast-timestamp"),
