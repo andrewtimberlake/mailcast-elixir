@@ -17,6 +17,12 @@ defmodule Mailcast.WebhooksTest do
     :ok
   end
 
+  test "generate_signature/3" do
+    signature = Mailcast.Webhooks.generate_signature(@test_timestamp, @test_body)
+
+    assert signature == @test_signature
+  end
+
   test "verify_signature/3 without raw body" do
     conn = %Plug.Conn{}
 
@@ -42,7 +48,7 @@ defmodule Mailcast.WebhooksTest do
       |> Plug.Conn.put_req_header("x-mailcast-timestamp", @test_timestamp)
       |> Plug.Conn.put_req_header("x-mailcast-signature", @test_signature)
 
-    assert Mailcast.Webhooks.verify_signature(conn, @test_body) == :ok
+    assert Mailcast.Webhooks.verify_signature(conn, raw_body: @test_body) == :ok
   end
 
   test "verify_signature/3 with missing header" do
