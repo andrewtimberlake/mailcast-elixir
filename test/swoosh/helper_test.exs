@@ -6,9 +6,8 @@ defmodule Mailcast.Swoosh.HelperTest do
   describe "set_transactional/2" do
     test "sets transactional flag" do
       email = Swoosh.Email.new()
-      email = Helper.set_transactional(email, true)
-      transactional = email.provider_options[:transactional]
-      assert transactional == true
+      email = Helper.set_transactional(email)
+      assert email.provider_options[:transactional] == true
     end
   end
 
@@ -16,15 +15,13 @@ defmodule Mailcast.Swoosh.HelperTest do
     test "enables click tracking" do
       email = Swoosh.Email.new()
       email = Helper.enable_click_tracking(email)
-      click_tracking = email.provider_options[:click_tracking]
-      assert click_tracking == true
+      assert email.provider_options[:click_tracking] == true
     end
 
     test "disables click tracking" do
       email = Swoosh.Email.new() |> Helper.enable_click_tracking()
       email = Helper.disable_click_tracking(email)
-      click_tracking = email.provider_options[:click_tracking]
-      assert click_tracking == false
+      assert email.provider_options[:click_tracking] == false
     end
   end
 
@@ -32,15 +29,13 @@ defmodule Mailcast.Swoosh.HelperTest do
     test "enables open tracking" do
       email = Swoosh.Email.new()
       email = Helper.enable_open_tracking(email)
-      open_tracking = email.provider_options[:open_tracking]
-      assert open_tracking == true
+      assert email.provider_options[:open_tracking] == true
     end
 
     test "disables open tracking" do
       email = Swoosh.Email.new() |> Helper.enable_open_tracking()
       email = Helper.disable_open_tracking(email)
-      open_tracking = email.provider_options[:open_tracking]
-      assert open_tracking == false
+      assert email.provider_options[:open_tracking] == false
     end
   end
 
@@ -48,8 +43,7 @@ defmodule Mailcast.Swoosh.HelperTest do
     test "sets template id" do
       email = Swoosh.Email.new()
       email = Helper.set_template_id(email, "template_123")
-      template_id = email.provider_options[:template_id]
-      assert template_id == "template_123"
+      assert email.provider_options[:template_id] == "template_123"
     end
   end
 
@@ -58,22 +52,19 @@ defmodule Mailcast.Swoosh.HelperTest do
       email = Swoosh.Email.new()
       data = %{"first_name" => "John"}
       email = Helper.set_data(email, data)
-      provider_data = email.provider_options[:data]
-      assert provider_data == data
+      assert email.provider_options[:data] == data
     end
 
     test "puts data key/value" do
       email = Swoosh.Email.new()
       email = Helper.put_data(email, "first_name", "John")
-      provider_data = email.provider_options[:data]
-      assert provider_data == %{"first_name" => "John"}
+      assert email.provider_options[:data] == %{"first_name" => "John"}
     end
 
     test "put_data merges with existing data" do
       email = Swoosh.Email.new() |> Helper.set_data(%{"first_name" => "John"})
       email = Helper.put_data(email, "last_name", "Doe")
-      provider_data = email.provider_options[:data]
-      assert provider_data == %{"first_name" => "John", "last_name" => "Doe"}
+      assert email.provider_options[:data] == %{"first_name" => "John", "last_name" => "Doe"}
     end
   end
 
@@ -81,24 +72,25 @@ defmodule Mailcast.Swoosh.HelperTest do
     test "adds a tag" do
       email = Swoosh.Email.new()
       email = Helper.add_tag(email, "tag1", "value1")
-      tags = email.provider_options[:tags]
-      assert tags == [%{name: "tag1", value: "value1"}]
+      assert email.provider_options[:tags] == [%{name: "tag1", value: "value1"}]
     end
 
     test "adds multiple tags" do
       email = Swoosh.Email.new()
       email = Helper.add_tag(email, "tag1", "value1")
       email = Helper.add_tag(email, "tag2", "value2")
-      tags = email.provider_options[:tags]
-      assert tags == [%{name: "tag2", value: "value2"}, %{name: "tag1", value: "value1"}]
+      assert email.provider_options[:tags] == [%{name: "tag2", value: "value2"}, %{name: "tag1", value: "value1"}]
     end
 
     test "sets tags (map and string keys)" do
       email = Swoosh.Email.new()
       tags = [%{name: "tag1", value: "value1"}, %{"name" => "tag2", "value" => "value2"}]
       email = Helper.set_tags(email, tags)
-      provider_tags = email.provider_options[:tags]
-      assert provider_tags == [%{"name" => "tag1", "value" => "value1"}, %{"name" => "tag2", "value" => "value2"}]
+
+      assert email.provider_options[:tags] == [
+               %{"name" => "tag1", "value" => "value1"},
+               %{"name" => "tag2", "value" => "value2"}
+             ]
     end
 
     test "set_tags raises on invalid tag" do

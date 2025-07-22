@@ -10,12 +10,12 @@ defmodule Mailcast.Swoosh.Helper do
 
   ```elixir
   email
-  |> Mailcast.Swoosh.Helper.set_transactional(true)
+  |> Mailcast.Swoosh.Helper.set_transactional()
   ```
   """
-  def set_transactional(email, value) do
+  def set_transactional(email) do
     email
-    |> Swoosh.Email.put_provider_option(:transactional, value)
+    |> Swoosh.Email.put_provider_option(:transactional, true)
   end
 
   @doc """
