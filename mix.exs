@@ -15,7 +15,7 @@ defmodule Mailcast.MixProject do
       docs: fn ->
         [
           source_ref: "#{@version}",
-          canonical: "http://hexdocs.pm/mailcast",
+          canonical: "https://mailcast.hexdocs.pm",
           main: "Mailcast",
           source_url: @github_url,
           extras: ["README.md"]
