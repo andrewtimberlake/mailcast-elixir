@@ -85,6 +85,58 @@ defmodule Mailcast.Swoosh.AdapterTest do
     Process.sleep(100)
   end
 
+  test "deliver/2 includes inline cid attachments" do
+    sham = Sham.start()
+
+    Sham.expect_once(sham, "POST", "/v1/emails", fn conn ->
+      conn =
+        Plug.Parsers.call(
+          conn,
+          Plug.Parsers.init(parsers: [:json], json_decoder: Swoosh.json_library())
+        )
+
+      assert %{
+               "attachments" => [
+                 %{
+                   "content" => "ZmFrZS1wbmc=",
+                   "content_type" => "image/png",
+                   "filename" => "badge.png",
+                   "type" => "inline",
+                   "cid" => "badge"
+                 }
+               ]
+             } = conn.body_params
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Swoosh.json_library().encode!(%{email_id: "email_01jzqtmznaexgb9d3rpectx870"})
+      )
+    end)
+
+    email =
+      Swoosh.Email.new()
+      |> Swoosh.Email.from({"From Name", "from@example.com"})
+      |> Swoosh.Email.to({"To Name", "to@example.com"})
+      |> Swoosh.Email.subject("Badge")
+      |> Swoosh.Email.html_body(~s(<img src="cid:badge" />))
+      |> Swoosh.Email.attachment(%Swoosh.Attachment{
+        filename: "badge.png",
+        content_type: "image/png",
+        data: "fake-png",
+        type: :inline,
+        cid: "badge"
+      })
+
+    assert Adapter.deliver(email,
+             base_url: "http://localhost:#{sham.port}"
+           ) ==
+             {:ok, %{email_id: "email_01jzqtmznaexgb9d3rpectx870"}}
+
+    Process.sleep(100)
+  end
+
   test "deliver_many/2" do
     sham = Sham.start()
 

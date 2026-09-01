@@ -48,6 +48,7 @@ defmodule Mailcast.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:bandit, "~> 1.0", only: :test},
       {:ex_doc, "~> 0.30", only: :dev, runtime: false},
       {:plug, "~> 1.15"},
       {:quokka, "~> 2.0", only: [:dev, :test], runtime: false},

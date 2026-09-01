@@ -198,9 +198,17 @@ if Code.ensure_loaded?(Swoosh) do
       %{
         content: Swoosh.Attachment.get_content(attachment, :base64),
         content_type: attachment.content_type,
-        filename: attachment.filename
+        filename: attachment.filename,
+        type: attachment.type
       }
+      |> maybe_put_attachment_cid(attachment)
     end
+
+    defp maybe_put_attachment_cid(map, %{cid: cid}) when is_binary(cid) and cid != "" do
+      Map.put(map, :cid, cid)
+    end
+
+    defp maybe_put_attachment_cid(map, _attachment), do: map
 
     defp set_open_tracking(map, %{provider_options: %{open_tracking: true}}) do
       Map.put(map, :open_tracking, true)
