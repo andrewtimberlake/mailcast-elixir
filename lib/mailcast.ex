@@ -1,2 +1,36 @@
 defmodule Mailcast do
+  @moduledoc """
+  Mailcast Elixir SDK.
+
+  Send email with `Mailcast.Swoosh.Adapter`, verify webhooks with
+  `Mailcast.Webhooks`, and manage templates with `Mailcast.Templates`.
+
+  ## Configuration
+
+      config :mailcast,
+        api_key: "prod_...",
+        base_url: "https://api.mailcast.io",
+        webhook_secret: "..."
+
+  ## Templates
+
+  Create and manage email templates via the Mailcast API (requires the optional
+  [`Req`](https://hex.pm/packages/req) dependency):
+
+      {:ok, %{"template_id" => template_id}} =
+        Mailcast.Templates.create(%{
+          name: "welcome",
+          mjml: "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>",
+          from: "hello@example.com",
+          subject: "Welcome {{name}}"
+        })
+
+      {:ok, %{"templates" => templates}} = Mailcast.Templates.list()
+      {:ok, template} = Mailcast.Templates.get(template_id)
+      {:ok, template} = Mailcast.Templates.update(template_id, %{subject: "Hi {{name}}"})
+      {:ok, nil} = Mailcast.Templates.delete(template_id)
+
+  Use the returned `template_id` with `Mailcast.Swoosh.Helper.set_template_id/2`
+  when sending.
+  """
 end
