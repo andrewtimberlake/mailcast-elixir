@@ -68,6 +68,22 @@ defmodule Mailcast.Swoosh.HelperTest do
     end
   end
 
+  describe "set_substitute/2" do
+    test "sets substitute fields" do
+      email = Swoosh.Email.new()
+      email = Helper.set_substitute(email, ["message"])
+      assert email.provider_options[:substitute] == ["message"]
+    end
+  end
+
+  describe "set_markdown/2" do
+    test "sets markdown fields" do
+      email = Swoosh.Email.new()
+      email = Helper.set_markdown(email, ["message"])
+      assert email.provider_options[:markdown] == ["message"]
+    end
+  end
+
   describe "add_tag/3 and set_tags/2" do
     test "adds a tag" do
       email = Swoosh.Email.new()

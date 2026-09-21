@@ -5,9 +5,11 @@ defmodule Mailcast.TemplatesTest do
 
   @api_key "prod_test_key"
   @template_id "template_01jzqtmznaexgb9d3rpectx870"
+  @user_id "welcome"
 
   @template %{
     "template_id" => @template_id,
+    "user_id" => @user_id,
     "name" => "welcome",
     "mjml" =>
       "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>",
@@ -34,6 +36,7 @@ defmodule Mailcast.TemplatesTest do
 
       assert %{
                "name" => "welcome",
+               "user_id" => "welcome",
                "mjml" => mjml,
                "from" => "hello@example.com",
                "subject" => "Welcome {{name}}"
@@ -48,6 +51,7 @@ defmodule Mailcast.TemplatesTest do
              Templates.create(
                %{
                  name: "welcome",
+                 user_id: "welcome",
                  mjml:
                    "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>",
                  from: "hello@example.com",
@@ -94,6 +98,14 @@ defmodule Mailcast.TemplatesTest do
     assert {:ok, @template} = Templates.get(@template_id, opts)
   end
 
+  test "get/2 fetches a template by user_id", %{opts: opts, sham: sham} do
+    Sham.expect_once(sham, "GET", "/v1/templates/#{@user_id}", fn conn ->
+      json_resp(conn, 200, @template)
+    end)
+
+    assert {:ok, @template} = Templates.get(@user_id, opts)
+  end
+
   test "update/3 patches a template", %{opts: opts, sham: sham} do
     updated = %{
       @template
@@ -118,12 +130,65 @@ defmodule Mailcast.TemplatesTest do
              )
   end
 
+  test "update/3 patches a template by user_id", %{opts: opts, sham: sham} do
+    updated = %{
+      @template
+      | "name" => "welcome-updated",
+        "subject" => "Hi {{name}}",
+        "updated_at" => "2025-08-29T13:30:00Z"
+    }
+
+    Sham.expect_once(sham, "PATCH", "/v1/templates/#{@user_id}", fn conn ->
+      conn = parse_json(conn)
+
+      assert %{"name" => "welcome-updated", "user_id" => "welcome-v2"} = conn.body_params
+
+      json_resp(conn, 200, Map.put(updated, "user_id", "welcome-v2"))
+    end)
+
+    assert {:ok, %{"user_id" => "welcome-v2"}} =
+             Templates.update(
+               @user_id,
+               %{name: "welcome-updated", user_id: "welcome-v2"},
+               opts
+             )
+  end
+
   test "delete/2 deletes a template", %{opts: opts, sham: sham} do
     Sham.expect_once(sham, "DELETE", "/v1/templates/#{@template_id}", fn conn ->
       Plug.Conn.resp(conn, 204, "")
     end)
 
     assert {:ok, nil} = Templates.delete(@template_id, opts)
+  end
+
+  test "delete/2 deletes a template by user_id", %{opts: opts, sham: sham} do
+    Sham.expect_once(sham, "DELETE", "/v1/templates/#{@user_id}", fn conn ->
+      Plug.Conn.resp(conn, 204, "")
+    end)
+
+    assert {:ok, nil} = Templates.delete(@user_id, opts)
+  end
+
+  test "promote/2 promotes a template by user_id", %{opts: opts, sham: sham} do
+    Sham.expect_once(sham, "POST", "/v1/templates/#{@user_id}/promote", fn conn ->
+      conn = parse_json(conn)
+
+      assert conn.body_params == %{}
+      assert Plug.Conn.get_req_header(conn, "authorization") == ["Bearer #{@api_key}"]
+
+      json_resp(conn, 200, @template)
+    end)
+
+    assert {:ok, @template} = Templates.promote(@user_id, opts)
+  end
+
+  test "promote/2 promotes a template by id", %{opts: opts, sham: sham} do
+    Sham.expect_once(sham, "POST", "/v1/templates/#{@template_id}/promote", fn conn ->
+      json_resp(conn, 200, @template)
+    end)
+
+    assert {:ok, @template} = Templates.promote(@template_id, opts)
   end
 
   test "returns api errors", %{opts: opts, sham: sham} do

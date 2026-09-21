@@ -3,11 +3,14 @@ defmodule Mailcast.Templates do
   Create and manage email templates.
 
   Templates content can be provided as [MJML](https://mjml.io/) or HTML/text.
-  Provide `mjml` or `content`, not both. Use the returned `template_id` when
-  [sending an email](https://mailcast.io/docs/api/emails/create).
+  Provide `mjml` or `content`, not both. Use the returned `template_id` or
+  `user_id` when [sending an email](https://mailcast.io/docs/api/emails/create).
 
-  Templates created with a test API key are test-only (`test_only: true`) until a
-  production key updates (promotes) them. The name is unique per domain.
+  Templates created with a test API key are test-only (`test_only: true`).
+  Templates created with a production key are production templates. Promote a
+  test template into production with `promote/2`. `user_id` and `name` are
+  unique per domain and mode — a test template and a production template may
+  share the same `user_id`.
 
   `mjml`, `content`, and `subject` can include dynamic content using the
   [template language](https://mailcast.io/docs/api/templates/language).
@@ -26,7 +29,10 @@ defmodule Mailcast.Templates do
 
   ## Parameters
 
-    * `:name` - Unique name for the template on this domain (required)
+    * `:name` - Unique name for the template on this domain and mode (required)
+    * `:user_id` - Stable identifier you supply (1–64 characters: lowercase
+      letters, numbers, hyphens, or underscores). Unique per domain and mode.
+      Defaults to a slug of `name`
     * `:mjml` - MJML source. Compiled to HTML when sending. Required unless `content` is provided
     * `:content` - HTML or plain text. Required unless `mjml` is provided
     * `:from` - Default From address used when sending if the send request omits `from`
@@ -43,6 +49,7 @@ defmodule Mailcast.Templates do
       {:ok, template} =
         Mailcast.Templates.create(%{
           name: "welcome",
+          user_id: "welcome",
           mjml: "<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>",
           from: "hello@example.com",
           subject: "Welcome {{name}}"
@@ -74,10 +81,11 @@ defmodule Mailcast.Templates do
   end
 
   @doc """
-  Retrieve a single email template.
+  Retrieve a single email template by TypeID or `user_id`.
 
-  Production keys can get a test-only template by id (so they can promote it)
-  even though it is omitted from the list.
+  A test key looking up by `user_id` returns the test template if one exists,
+  otherwise the production template. A production key only returns production
+  templates.
 
   ## Options
 
@@ -87,6 +95,7 @@ defmodule Mailcast.Templates do
   ## Examples
 
       {:ok, template} = Mailcast.Templates.get("template_01jzqtmznaexgb9d3rpectx870")
+      {:ok, template} = Mailcast.Templates.get("welcome")
 
   """
   def get(template_id, opts \\ []) when is_binary(template_id) do
@@ -96,13 +105,15 @@ defmodule Mailcast.Templates do
   @doc """
   Update an existing email template.
 
-  Changing `mjml` recompiles the stored HTML. A production key updating a
-  test-only template promotes it (`test_only` becomes `false`). A test key
-  cannot update a production template (`403`).
+  Changing `mjml` recompiles the stored HTML. `template_id` may be a TypeID or
+  `user_id`. A test key cannot update a production template (`403`). A production
+  key only updates production templates. To copy a test template into production,
+  use `promote/2`.
 
   ## Parameters
 
-    * `:name` - Unique name for the template on this domain
+    * `:name` - Unique name for the template on this domain and mode
+    * `:user_id` - Stable identifier you supply, unique per domain and mode
     * `:mjml` - MJML source. Do not send with `content`
     * `:content` - HTML or plain text. Do not send with `mjml`
     * `:from` - Default From address
@@ -117,7 +128,7 @@ defmodule Mailcast.Templates do
   ## Examples
 
       {:ok, template} =
-        Mailcast.Templates.update("template_01jzqtmznaexgb9d3rpectx870", %{
+        Mailcast.Templates.update("welcome", %{
           name: "welcome-updated",
           subject: "Hi {{name}}"
         })
@@ -128,7 +139,7 @@ defmodule Mailcast.Templates do
   end
 
   @doc """
-  Delete an email template.
+  Delete an email template by TypeID or `user_id`.
 
   Returns `{:ok, nil}` whether or not the template existed. Test keys can only
   delete test-only templates. Production keys can only delete production
@@ -141,10 +152,32 @@ defmodule Mailcast.Templates do
 
   ## Examples
 
-      {:ok, nil} = Mailcast.Templates.delete("template_01jzqtmznaexgb9d3rpectx870")
+      {:ok, nil} = Mailcast.Templates.delete("welcome")
 
   """
   def delete(template_id, opts \\ []) when is_binary(template_id) do
     Client.delete("/v1/templates/#{template_id}", opts)
+  end
+
+  @doc """
+  Copy a test template onto production.
+
+  Requires a production API key. If a production template with the same
+  `user_id` already exists, its content is replaced. Otherwise a new production
+  template is created. The test template is left in place. `template_id` may be
+  a TypeID or `user_id`.
+
+  ## Options
+
+    * `:api_key` - Mailcast API key
+    * `:base_url` - Mailcast API base URL
+
+  ## Examples
+
+      {:ok, template} = Mailcast.Templates.promote("welcome")
+
+  """
+  def promote(template_id, opts \\ []) when is_binary(template_id) do
+    Client.post("/v1/templates/#{template_id}/promote", %{}, opts)
   end
 end

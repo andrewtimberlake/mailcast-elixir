@@ -81,11 +81,16 @@ defmodule Mailcast.Swoosh.Helper do
   @doc """
   Set the template ID for the email.
 
+  `template_id` may be a template TypeID or the template `user_id`.
+
   ## Examples
 
   ```elixir
   email
   |> Mailcast.Swoosh.Helper.set_template_id("template_01jzqtmznaexgb9d3rpectx870")
+
+  email
+  |> Mailcast.Swoosh.Helper.set_template_id("welcome")
   ```
   """
   def set_template_id(email, template_id) do
@@ -99,6 +104,11 @@ defmodule Mailcast.Swoosh.Helper do
 
   This will replace the existing data.
 
+  When a value itself contains Handlebars (for example a `message` field with
+  `{{name}}` or `{{#if}}`), list that key with `set_substitute/2` so it is
+  expanded before the outer template runs. List markdown fields with
+  `set_markdown/2` to parse those values as markdown.
+
   ## Examples
 
   ```elixir
@@ -109,6 +119,55 @@ defmodule Mailcast.Swoosh.Helper do
   def set_data(email, data) do
     email
     |> Swoosh.Email.put_provider_option(:data, data)
+  end
+
+  @doc """
+  Set data keys to expand as templates before the outer template runs.
+
+  Use this when a value such as `message` contains `{{name}}`, `{{#if}}`, or
+  `{{#each}}`. Unlisted values are inserted as-is. Listed fields are Handlebars
+  only, not MJML.
+
+  ## Examples
+
+  ```elixir
+  email
+  |> Mailcast.Swoosh.Helper.set_template_id("welcome")
+  |> Mailcast.Swoosh.Helper.set_data(%{
+    "name" => "Andrew",
+    "message" => "Hi {{name}}{{#if promo}}\\n{{promo}}{{/if}}"
+  })
+  |> Mailcast.Swoosh.Helper.set_substitute(["message"])
+  ```
+  """
+  def set_substitute(email, fields) when is_list(fields) do
+    email
+    |> Swoosh.Email.put_provider_option(:substitute, fields)
+  end
+
+  @doc """
+  Set data keys to parse as markdown.
+
+  Use this when a value such as `message` contains markdown that should be
+  converted to HTML before the template is inserted. Unlisted values are
+  inserted as-is.
+
+  ## Examples
+
+  ```elixir
+  email
+  |> Mailcast.Swoosh.Helper.set_template_id("welcome")
+  |> Mailcast.Swoosh.Helper.set_data(%{
+    "name" => "Andrew",
+    "message" => "Hi **{{name}}**{{#if promo}}\\n{{promo}}{{/if}}"
+  })
+  |> Mailcast.Swoosh.Helper.set_substitute(["message"])
+  |> Mailcast.Swoosh.Helper.set_markdown(["message"])
+  ```
+  """
+  def set_markdown(email, fields) when is_list(fields) do
+    email
+    |> Swoosh.Email.put_provider_option(:markdown, fields)
   end
 
   @doc """

@@ -31,9 +31,17 @@ if Code.ensure_loaded?(Swoosh) do
 
       * `:data` (map) - data to be used in the template language
 
+      * `:substitute` ([string]) - data keys to render as templates before the
+        outer template runs. Use when a value such as `message` contains
+        Handlebars. Unlisted values are inserted as-is.
+
+      * `:markdown` ([string]) - data keys to parse as markdown. Use when a
+        value such as `message` contains markdown that should be converted to
+        HTML. Unlisted values are inserted as-is.
+
       * `:transactional` (boolean) - indicates if the email is transactional
 
-      * `:template_id` (string) - id of the template to use
+      * `:template_id` (string) - template TypeID or `user_id` to use
     """
 
     use Swoosh.Adapter, required_config: [:api_key]
@@ -151,6 +159,8 @@ if Code.ensure_loaded?(Swoosh) do
       map
       |> add_tags(email)
       |> add_data(email)
+      |> add_substitute(email)
+      |> add_markdown(email)
       |> set_transactional(email)
       |> add_template_id(email)
       |> set_open_tracking(email)
@@ -170,6 +180,18 @@ if Code.ensure_loaded?(Swoosh) do
     end
 
     defp add_data(map, _email), do: map
+
+    defp add_substitute(map, %{provider_options: %{substitute: substitute}}) when is_list(substitute) do
+      Map.put(map, :substitute, substitute)
+    end
+
+    defp add_substitute(map, _email), do: map
+
+    defp add_markdown(map, %{provider_options: %{markdown: markdown}}) when is_list(markdown) do
+      Map.put(map, :markdown, markdown)
+    end
+
+    defp add_markdown(map, _email), do: map
 
     defp set_transactional(map, %{provider_options: %{transactional: transactional}}) when not is_nil(transactional) do
       Map.put(map, :transactional, transactional)

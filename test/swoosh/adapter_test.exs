@@ -37,6 +37,8 @@ defmodule Mailcast.Swoosh.AdapterTest do
                "to" => ["\"To Name 2\" <to2@example.com>", "\"To Name\" <to@example.com>"],
                "tags" => [%{"name" => "tag1", "value" => "value1"}],
                "data" => %{"first_name" => "John", "last_name" => "Doe"},
+               "substitute" => ["message"],
+               "markdown" => ["message"],
                "transactional" => true,
                "open_tracking" => true,
                "click_tracking" => true,
@@ -70,6 +72,8 @@ defmodule Mailcast.Swoosh.AdapterTest do
       |> Helper.enable_open_tracking()
       |> Helper.set_template_id("template_01jzqtmznaexgb9d3rpectx870")
       |> Helper.set_data(%{"first_name" => "John", "last_name" => "Doe"})
+      |> Helper.set_substitute(["message"])
+      |> Helper.set_markdown(["message"])
       |> Helper.add_tag("tag1", "value1")
       |> Swoosh.Email.attachment(%Swoosh.Attachment{
         filename: "test.txt",
@@ -80,6 +84,53 @@ defmodule Mailcast.Swoosh.AdapterTest do
     assert Adapter.deliver(email,
              base_url: "http://localhost:#{sham.port}"
            ) ==
+             {:ok, %{email_id: "email_01jzqtmznaexgb9d3rpectx870"}}
+
+    Process.sleep(100)
+  end
+
+  test "deliver/2 posts substitute and markdown fields for nested content in data" do
+    sham = Sham.start()
+
+    Sham.expect_once(sham, "POST", "/v1/emails", fn conn ->
+      conn =
+        Plug.Parsers.call(
+          conn,
+          Plug.Parsers.init(parsers: [:json], json_decoder: Swoosh.json_library())
+        )
+
+      assert %{
+               "template_id" => "template_01jzqtmznaexgb9d3rpectx870",
+               "data" => %{
+                 "name" => "Andrew",
+                 "message" => "Hi **{{name}}**{{#if promo}}\n{{promo}}{{/if}}"
+               },
+               "substitute" => ["message"],
+               "markdown" => ["message"]
+             } = conn.body_params
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Swoosh.json_library().encode!(%{email_id: "email_01jzqtmznaexgb9d3rpectx870"})
+      )
+    end)
+
+    email =
+      Swoosh.Email.new()
+      |> Swoosh.Email.from({"From Name", "from@example.com"})
+      |> Swoosh.Email.to({"To Name", "to@example.com"})
+      |> Swoosh.Email.subject("Welcome")
+      |> Helper.set_template_id("template_01jzqtmznaexgb9d3rpectx870")
+      |> Helper.set_data(%{
+        "name" => "Andrew",
+        "message" => "Hi **{{name}}**{{#if promo}}\n{{promo}}{{/if}}"
+      })
+      |> Helper.set_substitute(["message"])
+      |> Helper.set_markdown(["message"])
+
+    assert Adapter.deliver(email, base_url: "http://localhost:#{sham.port}") ==
              {:ok, %{email_id: "email_01jzqtmznaexgb9d3rpectx870"}}
 
     Process.sleep(100)
@@ -172,6 +223,8 @@ defmodule Mailcast.Swoosh.AdapterTest do
                    "to" => ["\"To Name 2\" <to2@example.com>", "\"To Name\" <to@example.com>"],
                    "tags" => [%{"name" => "tag1", "value" => "value1"}],
                    "data" => %{"first_name" => "John", "last_name" => "Doe"},
+                   "substitute" => ["message"],
+                   "markdown" => ["message"],
                    "transactional" => true,
                    "template_id" => "template_01jzqtmznaexgb9d3rpectx870"
                  }
@@ -203,6 +256,8 @@ defmodule Mailcast.Swoosh.AdapterTest do
       |> Helper.set_transactional()
       |> Helper.set_template_id("template_01jzqtmznaexgb9d3rpectx870")
       |> Helper.set_data(%{"first_name" => "John", "last_name" => "Doe"})
+      |> Helper.set_substitute(["message"])
+      |> Helper.set_markdown(["message"])
       |> Helper.set_tags([%{name: "tag1", value: "value1"}])
       |> Swoosh.Email.attachment(%Swoosh.Attachment{
         filename: "test.txt",
